@@ -107,7 +107,9 @@ Lora？- Fine-tune
 > 考虑概率质量而不是简单地取`top_k`个结果，能够动态地确定词汇候选池的大小，并且避免过于受限或者过于随机的生成结果。
 >
 > - Top-K
->   - ![img](./LLMs.assets/v2-4f8062a43860f66203dd5b1d524fbafe_720w.webp)
+>   
+>   ![img](./LLMs.assets/v2-4f8062a43860f66203dd5b1d524fbafe_720w.webp)
 > - Top-P
->   - ![img](./LLMs.assets/v2-ab40b89ae2d543fb441da2cdf8ea4323_720w.webp)
+>   
+>   ![img](./LLMs.assets/v2-ab40b89ae2d543fb441da2cdf8ea4323_720w.webp)
 

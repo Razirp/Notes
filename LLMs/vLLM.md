@@ -80,7 +80,7 @@
 
 ### 在CUDA 11.8下从源码安装vLLM
 
-1. `clone`存储库后，删除`xxx.toml`文件
+1. `clone`存储库后，删除`pyproject.toml`文件
 2. `setup.py`中设置`MAIN_CUDA_VERSION = 11.8`
 3. 安装cu118的`xformers`
    - `pip install -U xformers --index-url https://download.pytorch.org/whl/cu118`
