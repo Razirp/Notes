@@ -13,6 +13,7 @@
 - [大模型推理优化](./LLMs/Inference_Optimization_calc_acc.md)
 - [Hugging Face基础](./LLMs/HuggingFace.md)
 - [LLM基础](./LLMs/LLMs.md)
+- [vLLM基础](./LLMs/vLLM.md)
 - …
 
 ## C++
