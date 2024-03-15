@@ -1,7 +1,5 @@
 # 大模型推理加速技术——计算加速
 
-> 本文综合了互联网上若干篇技术博客的内容，仅供个人学习使用，参考文献已于文后列出，若有侵权请联系我进行删除。
-
 ## 总览
 
 计算加速：
@@ -245,6 +243,13 @@ Continuous Batching可以部分解决Internal Fragmentation问题，但剩余两
 
 > 目前被包含在DeepSpeed MII框架里
 
-## 参考文献
+# 大模型推理加速技术——模型压缩
+
+- 量化（Quantization）：使用低精度（$\le16$位）存储模型权重
+- 精简 Attention：通过一些变种Attention算法减少模型计算量
+
+
+
+# 参考文献
 
 - [大语言模型推理加速技术：计算加速篇 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/666452391)
