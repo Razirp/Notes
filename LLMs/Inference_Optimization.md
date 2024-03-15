@@ -21,6 +21,16 @@
   - Intel MKL
   - ARM Compute Library
 
+## 推理服务框架
+
+1. **vLLM[1]**：适用于大批量Prompt输入，并对推理速度要求高的场景；
+2. **Text generation inference[2]**：依赖HuggingFace模型，并且不需要为核心模型增加多个adapter的场景；
+3. **CTranslate2[3]**：可在CPU上进行推理；
+4. **OpenLLM[4]**：为核心模型添加adapter并使用HuggingFace Agents，尤其是不完全依赖PyTorch；
+5. **Ray Serve[5]**：稳定的Pipeline和灵活的部署，它最适合更成熟的项目；
+6. **MLC LLM[6]**：可在客户端（边缘计算）（例如，在Android或iPhone平台上）本地部署LLM；
+7. **DeepSpeed-MII[7]**：使用DeepSpeed库来部署LLM；
+
 ## 优化策略
 
 ### 大模型调度引擎

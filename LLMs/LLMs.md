@@ -113,3 +113,5 @@ Lora？- Fine-tune
 >   
 >   ![img](./LLMs.assets/v2-ab40b89ae2d543fb441da2cdf8ea4323_720w.webp)
 
+## 混合专家模型（MoE）与门控机制
+
