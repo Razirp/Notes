@@ -38,7 +38,7 @@
 - 大模型通常需要处理很长的输入输出，输入越长，模型需要计算的矩阵尺寸越大
 - 生成阶段，每个token的生成都依赖于前面所有的计算，只能一个个token生成，不能并行计算
 
-即，Attention的计算是一个**$O(n^{2})$​**的操作，计算**时间复杂度高**，并且**无法并发**。
+即，Attention的计算是一个** $ O(n^{2}) $ ​**的操作，计算**时间复杂度高**，并且**无法并发**。
 
 ### 优化目标
 
@@ -119,9 +119,9 @@
 
 Flash Attention更进一步。观察到Attention计算分为三步：
 
-1. 从HBM读取Q、K，计算$S=QK^{T}$，将S写回HBM
-2. 从HBM读取S，计算$P=Softmax(S)$，将P写回HBM
-3. 从HBM读取P和V，计算$O=PV$，将O写回HBM
+1. 从HBM读取Q、K，计算 $ S=QK^{T} $ ，将S写回HBM
+2. 从HBM读取S，计算 $ P=Softmax(S) $ ，将P写回HBM
+3. 从HBM读取P和V，计算 $ O=PV $ ，将O写回HBM
 
 过程中需要读三次HBM写三次HBM；那么自然可以想到是否有办法将读写次数各降至一次？
 
@@ -226,7 +226,7 @@ Continuous Batching可以部分解决Internal Fragmentation问题，但剩余两
 
 如果要在F个前向推理中处理P个token，最高效的分配策略是将它们均分：
 
-- 每个前向推理处理$\frac{P}{F}$个token
+- 每个前向推理处理 $ \frac{P}{F} $ 个token
 
 但在模型推理过程中，需要先在context phase一次性处理整个prompt，然后再在generation phase一个个生成token，是不符合最优策略的
 
@@ -245,7 +245,7 @@ Continuous Batching可以部分解决Internal Fragmentation问题，但剩余两
 
 # 大模型推理加速技术——模型压缩
 
-- 量化（Quantization）：使用低精度（$\le16$位）存储模型权重
+- 量化（Quantization）：使用低精度（ $ \le16 $ 位）存储模型权重
 - 精简 Attention：通过一些变种Attention算法减少模型计算量
 
 
