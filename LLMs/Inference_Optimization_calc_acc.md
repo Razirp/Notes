@@ -247,6 +247,11 @@ Continuous Batching可以部分解决Internal Fragmentation问题，但剩余两
 
 - 量化（Quantization）：使用低精度（ $ \le16 $ 位）存储模型权重
 - 精简 Attention：通过一些变种Attention算法减少模型计算量
+- “投机采样”
+
+## 量化（Quantization）
+
+
 
 
 
