@@ -1133,3 +1133,149 @@ void (test_class::*member_func_ptr)() = &test_class::test_func;	//正确声明�
 test_obj.*member_func_ptr();	//通过一个已实例化的对象来调用
 ```
 
+更详细地说：
+
+### 正确用法
+
+在C++中，要获得一个类的成员函数指针，你需要使用特定的语法来指定类名和成员函数名。成员函数指针是一个指向类成员函数的指针，它可以用来存储、传递或调用类的成员函数。
+
+以下是获取类成员函数指针的步骤和示例：
+
+#### 1. 声明成员函数
+
+首先，你需要在类中声明成员函数。例如：
+
+```cpp
+class MyClass {
+public:
+    void memberFunction() {
+        // 成员函数的实现
+    }
+};
+```
+
+#### 2. 定义成员函数指针类型
+
+接下来，你需要定义一个指向该成员函数的指针类型。这可以通过使用 `&` 运算符和类名来完成。例如：
+
+```cpp
+// 定义指向MyClass类成员函数的指针类型
+typedef void (MyClass::*MyMemberFunctionPtr)();
+```
+
+#### 3. 获取成员函数指针
+
+现在，你可以使用 `&` 运算符和类名来获取成员函数的地址，即成员函数指针：
+
+```cpp
+// 获取成员函数的指针
+MyMemberFunctionPtr funcPtr = &MyClass::memberFunction;
+```
+
+#### 4. 使用成员函数指针
+
+一旦你有了成员函数指针，你就可以使用它来调用成员函数。要调用成员函数指针指向的函数，你需要一个指向 `MyClass` 对象的指针或引用：
+
+```cpp
+MyClass myObject;
+(MyObject.*funcPtr)(); // 调用成员函数
+```
+
+或者，如果你有一个指向 `MyClass` 对象的指针：
+
+```cpp
+MyClass* myObjectPtr = &myObject;
+(myObjectPtr->*funcPtr)(); // 调用成员函数
+```
+
+#### 示例代码
+
+下面是一个完整的示例，展示了如何声明、获取和使用类成员函数指针：
+
+```cpp
+#include <iostream>
+
+class MyClass {
+public:
+    void memberFunction() {
+        std::cout << "Member function called." << std::endl;
+    }
+};
+
+// 定义成员函数指针类型
+typedef void (MyClass::*MyMemberFunctionPtr)();
+
+int main() {
+    // 获取成员函数的指针
+    MyMemberFunctionPtr funcPtr = &MyClass::memberFunction;
+
+    // 创建MyClass对象并调用成员函数
+    MyClass myObject;
+    (myObject.*funcPtr)(); // 等价于 myObject.memberFunction()
+
+    return 0;
+}
+```
+
+在这个示例中，我们定义了一个指向 `MyClass` 成员函数 `memberFunction` 的指针，并使用它来调用该函数。
+
+请注意，C++11 引入了 `std::mem_fn` 函数模板，它可以简化成员函数指针的获取和调用过程。使用 `std::mem_fn` 可以避免手动定义成员函数指针类型，直接创建一个绑定到成员函数的可调用对象。
+
+### `std::mem_fn`
+
+`std::mem_fn` 是 C++ 标准库中的一个非常有用的函数模板，它提供了一种便捷的方式来创建一个可调用对象，该对象可以绑定到类的成员函数上。这个可调用对象可以像函数指针一样被存储、传递和调用，但它更加灵活和强大，因为它可以绑定到成员函数的任意重载版本上。
+
+#### 语法
+
+`std::mem_fn` 的基本语法如下：
+
+```cpp
+template< class Ret, class... Args >
+std::function< Ret(Args...) > std::mem_fn(Ret (class T::*pm)(Args...) );
+```
+
+这里，`Ret` 是成员函数的返回类型，`Args...` 是成员函数的参数类型列表，`pm` 是成员函数的指针。
+
+#### 使用方法
+
+你可以使用 `std::mem_fn` 来创建一个绑定到成员函数的可调用对象，然后通过这个对象调用成员函数。这在你需要将成员函数作为参数传递给其他函数，或者需要创建一个可以调用成员函数的函数对象时非常有用。
+
+下面是一个使用 `std::mem_fn` 的示例：
+
+```cpp
+#include <iostream>
+#include <functional>
+
+class MyClass {
+public:
+    void memberFunction(int x) {
+        std::cout << "Value: " << x << std::endl;
+    }
+};
+
+int main() {
+    MyClass myObject;
+    
+    // 创建一个绑定到 MyClass::memberFunction 的可调用对象
+    auto boundFunction = std::mem_fn(&MyClass::memberFunction);
+    
+    // 使用可调用对象调用成员函数
+    boundFunction(myObject, 10); // 输出: Value: 10
+    
+    return 0;
+}
+```
+
+在这个例子中，`std::mem_fn` 被用来创建一个绑定到 `MyClass` 类的 `memberFunction` 成员函数的可调用对象 `boundFunction`。然后，我们可以使用 `boundFunction` 来调用 `myObject` 的 `memberFunction`，就像调用普通函数一样。
+
+#### 与 `std::bind` 的比较
+
+`std::mem_fn` 和 `std::bind` 都可以用于创建绑定到成员函数的可调用对象，但 `std::mem_fn` 更加简洁和直观。`std::bind` 需要你手动指定成员函数指针和对象，而 `std::mem_fn` 只需要你传递成员函数指针。
+
+#### 与 lambda 表达式和 std::function 的比较
+
+`std::mem_fn` 与 lambda 表达式和 `std::function` 相比，提供了一种专门针对成员函数的解决方案。它允许你创建一个可以调用成员函数的函数对象，而不需要担心成员函数的重载和参数匹配问题。
+
+#### 总结
+
+`std::mem_fn` 是一个非常有用的工具，它简化了成员函数的绑定和调用过程。它使得成员函数可以像普通函数一样被存储、传递和调用，这在设计需要灵活使用成员函数的程序时非常有价值。使用 `std::mem_fn` 可以提高代码的可读性和可维护性，同时保持了性能的高效性。
