@@ -809,3 +809,327 @@ int main() {
 - `explicit` 关键字对于重载函数和转换操作符也是有用的，可以防止不期望的隐式类型转换。
 
 总之，`explicit` 关键字是C++中一个重要的特性，它帮助开发者控制类的实例化过程，避免隐式类型转换带来的问题。
+
+## `size_t`
+
+在C和C++标准库中，`size_t` 是一种无符号整数类型，它通常用于表示大小、长度和索引等。`size_t` 的确切类型取决于平台和编译器，但它被设计为足够大，以便能够表示内存中任何对象的大小。
+
+`size_t` 的主要特点和用途包括：
+
+1. **无符号整数**：`size_t` 是一种无符号类型，这意味着它只能表示非负整数值。这使得它非常适合表示大小和长度，因为这些值通常不会是负数。
+
+2. **内存大小**：`size_t` 通常用于表示内存块的大小，例如，当你使用 `malloc` 或 `calloc` 函数分配内存时，它们返回的指针可以转换为 `size_t` 类型，以表示分配的字节数。
+
+3. **数组索引**：由于 `size_t` 可以表示任何对象的大小，它也常用于数组索引。这样可以确保索引值不会超出数组的界限。
+
+4. **标准库函数**：许多标准库函数，如 `strlen`、`strncpy` 和 `memcpy` 等，使用 `size_t` 作为参数或返回类型，以确保它们能够处理任何大小的数据。
+
+5. **跨平台兼容性**：`size_t` 保证了跨不同平台和编译器的一致性。无论在32位还是64位系统上，`size_t` 都能提供足够的位数来表示内存大小。
+
+下面是一个使用 `size_t` 的示例：
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+    char str[] = "Hello, World!";
+    size_t len = strlen(str); // 使用size_t来存储字符串的长度
+    printf("The length of the string is: %zu\n", len);
+    return 0;
+}
+```
+
+在这个例子中，`strlen` 函数返回字符串 `str` 的长度，即字符数。由于字符串的长度是一个非负值，使用 `size_t` 类型是合适的。`%zu` 是 `printf` 函数中格式化 `size_t` 类型变量的格式说明符。
+
+总之，`size_t` 是C和C++中用于表示大小和长度的无符号整数类型，它在标准库函数和内存操作中广泛使用，并且保证了跨平台的兼容性。
+
+## 类中成员的声明顺序对类的内存布局的影响
+
+在C++中，定义类（`class`）时声明成员变量和成员函数的顺序可以影响编译器如何生成类的布局，尤其是在内存对齐和成员排序方面。然而，对于大多数开发者来说，这种影响通常是透明的，因为编译器会自动处理这些细节。但是，了解这些概念对于编写高性能和可移植的代码是有帮助的。
+
+### 内存分配的影响
+
+1. **内存对齐**：为了提高访问速度，许多硬件平台要求数据结构的成员按照一定的规则进行内存对齐。例如，一个`double`类型的成员可能要求在8字节边界上对齐。如果前面的成员大小不是8的倍数，编译器可能会在成员之间插入填充字节以满足对齐要求。
+
+2. **成员排序**：编译器可能会重新排序成员变量，以优化内存对齐和访问效率。这通常发生在非静态成员变量中，静态成员变量和常量成员变量通常不会影响类的布局。
+
+3. **虚函数表指针**：如果类包含虚函数，编译器会在对象的内存布局中插入一个虚函数表（vtable）指针。这个指针通常放在对象的开头，以便快速访问虚函数。
+
+### 建议的顺序原则
+
+虽然没有强制的规则，但以下建议可以帮助你优化类的内存布局和性能：
+
+1. **按大小排序**：将小的成员变量放在前面，大的成员变量放在后面。这样可以减少内存对齐所需的填充字节，从而减少对象的总大小。
+
+2. **按访问频率排序**：经常一起访问的成员变量（如在成员函数中频繁使用的变量）可以放在一起，以便提高缓存利用率。
+
+3. **避免在类中使用大量虚函数**：虚函数会增加对象的大小（因为需要vtable指针），并可能影响内存对齐。尽量减少虚函数的使用，或者将它们集中在类的某个部分。
+
+4. **使用`alignas`属性**：如果你对内存对齐有特殊要求，可以使用`alignas`关键字来指定成员变量的对齐方式。
+
+5. **避免在类中使用大量成员变量**：过多的成员变量会增加对象的大小和内存对齐的复杂性。考虑使用聚合初始化或std::pair等容器来管理复杂的数据结构。
+
+6. **使用`#pragma pack`**：在某些情况下，如果你需要更精细的控制内存布局，可以使用`#pragma pack`指令来指定对齐的字节数。但这种做法应该谨慎使用，因为它可能会降低性能，并且不是所有的编译器都支持。
+
+总的来说，类的内存布局和分配是由编译器根据成员变量的类型、访问要求和硬件平台的特性来决定的。虽然开发者通常不需要直接处理这些细节，但了解这些概念可以帮助你编写更高效和可维护的代码。在大多数情况下，遵循自然的编码风格和上述建议就足够了。
+
+### `alignas()`指定对齐要求
+
+`alignas` 是 C++11 引入的一个关键字，用于指定变量或类型的对齐方式。在类定义中，你可以使用 `alignas` 来指定成员变量的对齐要求，这样可以确保成员变量在内存中按照特定的边界对齐，从而提高访问效率或满足特定硬件的要求。
+
+使用 `alignas` 指定成员变量对齐的方式如下：
+
+1. **指定基本类型**：你可以使用 `alignas` 直接指定一个基本数据类型的对齐方式。
+2. **指定结构体或类的对齐方式**：你可以在定义结构体或类时使用 `alignas` 来指定整个结构体或类的对齐方式。
+3. **指定成员变量的对齐方式**：在类定义中，你可以为每个成员变量指定对齐要求。
+
+下面是一个使用 `alignas` 指定成员变量对齐方式的示例：
+
+```cpp
+#include <iostream>
+
+// 定义一个结构体，要求其成员按照16字节对齐
+struct alignas(16) MyStruct {
+    char a; // 1字节
+    int b;  // 4字节
+    double c; // 8字节
+    // 编译器可能会在a和b之间插入填充字节，以确保c按照16字节对齐
+};
+
+int main() {
+    MyStruct s;
+    std::cout << "Size of MyStruct: " << sizeof(MyStruct) << " bytes" << std::endl;
+    std::cout << "Alignment of MyStruct: " << __alignof(MyStruct) << " bytes" << std::endl;
+    return 0;
+}
+```
+
+在这个例子中，`MyStruct` 结构体被定义为按照16字节对齐。这意味着结构体的每个成员都将按照16字节的边界对齐，结构体本身的大小也将是16字节的倍数（如果成员变量的总大小不是16字节的倍数，编译器可能会添加填充字节以满足对齐要求）。
+
+请注意，`alignas` 指定的对齐方式必须大于或等于成员变量的自然对齐要求。如果指定的对齐方式小于成员变量的自然对齐要求，编译器会忽略这个指定，并使用成员变量的自然对齐要求。
+
+`alignas` 是一个强大的工具，可以帮助你优化程序的性能，特别是在需要与硬件接口或处理对齐敏感的并行计算时。然而，过度使用 `alignas` 可能会导致不必要的内存浪费，因此应该根据实际情况谨慎使用。
+
+## `std::function<>`
+
+`std::function` 是 C++ 标准库中的一个通用封装，它可以存储、复制和调用任何可调用的目标，包括函数、函数指针、lambda 表达式、成员函数指针等。`std::function` 的初始化和使用非常灵活，以下是一些初始化 `std::function` 的方法和常用的成员函数：
+
+### 初始化 `std::function`
+
+1. **默认初始化**：
+   ```cpp
+   std::function<void()> func; // 默认初始化，未绑定任何函数
+   ```
+
+2. **绑定普通函数**：
+   ```cpp
+   void myFunction() {
+       // 函数体
+   }
+   std::function<void()> func = myFunction; // 绑定普通函数
+   ```
+
+3. **绑定 lambda 表达式**：
+   ```cpp
+   std::function<void()> func = [] {
+       // lambda 函数体
+   };
+   ```
+
+4. **绑定成员函数**：
+   ```cpp
+   struct MyClass {
+       void memberFunction() {
+           // 成员函数体
+       }
+   };
+   MyClass myObject;
+   std::function<void(MyClass*)> func = &MyClass::memberFunction; // 绑定成员函数
+   ```
+
+5. **使用 `std::bind` 绑定成员函数**：
+   ```cpp
+   std::bind(&MyClass::memberFunction, &myObject); // 绑定成员函数和对象
+   ```
+
+6. **使用初始化列表**：
+   ```cpp
+   std::function<void()> func{myFunction}; // 使用初始化列表绑定函数
+   ```
+
+### 常用的成员函数
+
+1. **`operator()`**：
+   调用存储的可调用目标。
+   ```cpp
+   func(); // 调用绑定的函数
+   ```
+
+2. **`target_type()`**：
+   返回存储的可调用目标的类型信息。
+   ```cpp
+   std::type_info ti = func.target_type(); // 获取类型信息
+   ```
+
+3. **`target()`**：
+   返回指向存储的可调用目标的指针。如果 `std::function` 未绑定任何目标，则返回 `nullptr`。
+   ```cpp
+   void* targetPtr = func.target(); // 获取目标指针
+   ```
+
+4. **`reset()`**：
+   清空 `std::function`，使其未绑定任何目标。
+   ```cpp
+   func.reset(); // 重置 std::function
+   ```
+
+5. **`swap()`**：
+   交换两个 `std::function` 对象的内容。
+   ```cpp
+   std::function<void()> otherFunc;
+   func.swap(otherFunc); // 交换两个 std::function 对象
+   ```
+
+6. **`valid()`**：
+   检查 `std::function` 是否绑定了有效的目标。
+   ```cpp
+   if (func.valid()) {
+       // func 绑定了有效的目标
+   }
+   ```
+
+`std::function` 提供了一种灵活的方式来封装和操作可调用目标。它支持多种初始化方式，并提供了一组成员函数来管理和操作封装的可调用目标。这使得 `std::function` 成为处理不同类型和来源的函数和对象的有力工具。
+
+## `std::bind()`
+
+`std::bind` 是 C++ 标准库中的一个非常有用的函数适配器，它可以用来绑定函数调用的参数。`std::bind` 通常与函数指针、成员函数指针、`std::function` 和其他可调用对象一起使用，以创建一个新的可调用对象，该对象绑定了原始函数的某些参数。
+
+### `std::bind` 的参数
+
+`std::bind` 的第一个参数是一个可调用对象的指针，它可以是函数指针、成员函数指针、`std::function` 对象或其他任何可调用对象。接下来的参数是你要绑定到可调用对象的参数值或引用。
+
+### 用法
+
+`std::bind` 的基本语法如下：
+
+```cpp
+#include <functional>
+
+// 绑定函数指针
+int add(int a, int b) {
+    return a + b;
+}
+int (*funcPtr)(int, int) = add;
+std::function<int(int, int)> boundFunc = std::bind(funcPtr, std::placeholders::_1, 1);
+
+// 调用绑定的函数
+int result = boundFunc(2); // 相当于 add(2, 1)
+```
+
+在这个例子中，`std::bind` 绑定了函数 `add` 的第二个参数为 `1`，并返回了一个新的 `std::function` 对象 `boundFunc`。当我们调用 `boundFunc` 并传入一个参数 `2` 时，它实际上调用了 `add(2, 1)`。
+
+### 作用
+
+`std::bind` 的主要作用是创建一个新的可调用对象，该对象固定了原始函数的某些参数。这使得你可以：
+
+- 延迟函数调用。
+- 创建接受不同参数的函数对象。
+- 简化回调函数的使用。
+- 将成员函数绑定到特定对象上。
+
+### 使用场景
+
+1. **延迟调用**：
+   ```cpp
+   auto delayedAdd = std::bind(add, std::placeholders::_1, 3);
+   std::cout << delayedAdd(5); // 输出 8
+   ```
+
+2. **创建回调**：
+   ```cpp
+   void callback(int result) {
+       std::cout << "Result: " << result;
+   }
+   auto boundCallback = std::bind(callback, std::placeholders::_1);
+   someLibraryFunction(boundCallback);
+   ```
+
+3. **绑定成员函数**：
+   ```cpp
+   struct MyClass {
+       void memberFunction(int value) {
+           std::cout << "Value: " << value;
+       }
+   };
+   MyClass myObject;
+   auto boundMemberFunction = std::bind(&MyClass::memberFunction, &myObject, std::placeholders::_1, 2);
+   boundMemberFunction(10); // 调用 myObject.memberFunction(10)
+   ```
+
+4. **使用标准库算法**：
+   ```cpp
+   std::vector<int> vec = {1, 2, 3, 4, 5};
+   std::for_each(vec.begin(), vec.end(), std::bind(printInt, std::placeholders::_1));
+   // 打印每个元素的值
+   ```
+
+5. **创建可变参数的函数对象**：
+   ```cpp
+   auto multiply = std::bind(std::multiplies<int>(), std::placeholders::_1, std::placeholders::_2);
+   std::function<int(int, int)> half = std::bind(multiply, std::placeholders::_1, 0.5);
+   std::cout << half(10); // 输出 5
+   ```
+
+`std::bind` 是一个非常强大的工具，它可以帮助你创建灵活的函数对象，并且简化回调和延迟调用的使用。然而，它也可能导致性能开销，因为它涉及到额外的函数调用和可能的模板实例化。在使用 `std::bind` 时，应该权衡其带来的便利性和可能的性能影响。在 C++11 及更高版本中，lambda 表达式提供了一种更简洁和直观的方式来实现类似 `std::bind` 的功能。
+
+## 成员函数指针
+
+> 针对非静态成员函数。
+
+### 与普通函数指针不同的语法
+
+**非静态**成员函数指针与一般的函数指针略有不同，有一些额外的限制：
+
+- 不能直接获取一个已经绑定到对象的成员函数的地址，来形成一个指向成员函数的指针
+
+> - 大概是由于非静态成员函数的调用需要依托于一个已实例化的对象上下文（一个`this`指针），而普通的函数指针无法获得这一上下文。
+>- 并且正因如此，由于静态成员函数无需对象上下文即可调用，所以不受此限制；可以直接使用普通的函数指针。
+> 
+
+因此，写法比想象中要更不灵活，需要遵循为非静态成员函数指针专门设计的语法。
+
+例如，当我们定义如下这样的一个类时：
+
+```c++
+class test_class
+{
+public:
+    test_class() {}
+    ~test_class() {}
+    void test_func()
+    {
+        std::cout << "print: test_func" << std::endl;
+    }
+};
+```
+
+以下操作都是不允许的：
+
+```c++
+test_class test_obj; //实例化了一个test_class对象
+// ***以下的代码都是错误的，无法通过编译！！
+void (*normal_func_ptr)() = test_obj.test_func;	//ISO C++ forbids taking the address of a bound member function to form a pointer to member function.
+void (test_class::*member_func_ptr)() = test_obj.test_func;	//error: cannot convert ‘test_class::test_func’ from type ‘void (test_class::)()’ to type ‘void (test_class::*)()’ -- test_obj.test_func的类型是‘void (test_class::)()’ //指向绑定函数的指针只能用于调用函数C/C++(300)
+void (*normal_func_ptr)() = &test_class::test_func;	//"void (test_class::*)()" 类型的值不能用于初始化 "void (*)()" 类型的实体C/C++(144)
+void (test_class::*member_func_ptr)() = test_class::test_func;	//error: invalid use of non-static member function ‘void test_class::test_func()’ 试图获取一个非静态成员函数的地址，但没有按照正确的语法进行
+```
+
+正确的用法应该如下：
+
+```c++
+test_class test_obj; //实例化了一个test_class对象
+void (test_class::*member_func_ptr)() = &test_class::test_func;	//正确声明一个‘void (test_class::*)()’类型的成员函数指针
+test_obj.*member_func_ptr();	//通过一个已实例化的对象来调用
+```
+

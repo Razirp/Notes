@@ -57,8 +57,6 @@
 - 异步操作
   - close(fd);
 
-
-
 ## Java 实现
 
 Java中，ExecutorService是线程池的核心接口，通过实现这个接口，可以创建自己的线程池。
