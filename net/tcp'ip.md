@@ -134,3 +134,6 @@
 
 - listen中的backlog参数的意义？
   - 
+
+## TCP状态转移
+
