@@ -1573,3 +1573,51 @@ void consumer() {
 
 ## 模版 `template`
 
+## `std::task`
+
+`std::packaged_task` 是C++标准库中 `<future>` 头文件提供的一个类模板，它允许将一个可调用对象（如函数、函数对象或lambda表达式）打包进一个任务，并且与一个`std::future`对象关联起来。`std::packaged_task`的目的是在多线程环境中创建异步任务，并能够异步地获取任务的结果。
+
+**基本结构和使用方法：**
+
+```cpp
+#include <future>
+
+// 假设我们有一个计算平方的函数
+int square(int x) {
+    return x * x;
+}
+
+int main() {
+    // 创建一个packaged_task实例，关联计算平方的函数
+    std::packaged_task<int(int)> task(square);
+
+    // 从packaged_task获取关联的future对象
+    std::future<int> futureResult = task.get_future();
+
+    // 启动一个线程执行packaged_task
+    std::thread worker(std::move(task), 10); // 注意使用std::move防止拷贝任务
+
+    // 主线程可以继续执行其他任务，而worker线程在执行square函数
+
+    // 当需要获取结果时，可以从future对象中获取
+    if (futureResult.valid()) {
+        int result = futureResult.get(); // 这里会阻塞，直到计算完成
+        std::cout << "The square of 10 is: " << result << '\n';
+    }
+
+    // 确保worker线程结束
+    worker.join();
+}
+```
+
+**使用场景：**
+
+1. **异步计算**：当主线程需要执行一个耗时较长的计算任务，而又不想阻塞主线程的执行时，可以使用`std::packaged_task`将计算任务包装并提交给线程池或者其他工作线程执行，主线程则可以通过关联的`std::future`对象获取计算结果。
+
+2. **事件驱动编程**：在事件循环中，当某个事件触发时，可以创建一个`std::packaged_task`并将它放入事件队列，事件处理线程将执行这些任务，并通过`std::future`返回结果。
+
+3. **协同任务处理**：当多个任务之间存在一定的依赖关系，可以通过`std::packaged_task`创建一系列任务，任务的结果可以通过`std::future`进行传递和消费。
+
+4. **资源有限的环境**：在资源受限的嵌入式系统或服务器环境中，通过`std::packaged_task`配合线程池，可以高效地管理线程资源和任务调度。
+
+总结来说，`std::packaged_task`是C++多线程编程中实现异步任务和结果获取的重要工具，它将任务执行和结果查询分离，使得程序可以更灵活地进行并行处理和任务调度。
