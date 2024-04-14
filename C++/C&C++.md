@@ -417,9 +417,37 @@ void foo() {
 
 ### 2. 条件变量（Condition Variables）
 
-条件变量是一种同步机制，用于在特定条件下阻塞和唤醒线程。它通常与互斥量一起使用，以实现更复杂的同步逻辑。
+条件变量（condition variable）在C++中提供了几个成员函数，用于线程间的同步和通信。以下是条件变量的主要成员函数及其详细介绍：
 
-- **用法**：线程在检查条件不满足时，会释放互斥量并等待条件变量。当条件变为满足时，线程被唤醒并重新尝试获取互斥量。
+1. **`wait(std::unique_lock<Mutex>& lock);`**
+   - 这个成员函数使当前线程等待条件变量的通知。调用此函数的线程会释放锁（由`std::unique_lock`管理），然后进入等待状态。它将一直等待直到另一个线程调用与此条件变量相关联的`notify_one()`或`notify_all()`函数。
+   - 参数`lock`是一个指向互斥锁的智能指针，它必须是一个`unique_lock`，因为`wait()`函数需要获取锁的所有权并在等待期间释放它。
+
+2. **`wait_for(std::unique_lock<Mutex>& lock, const std::chrono::duration& timeout_duration);`**
+   - 类似于`wait()`，但它允许指定一个超时时间。如果在超时时间内没有收到通知，线程将自行唤醒。超时时间由`std::chrono::duration`类型指定。
+   - 参数`timeout_duration`是一个时间间隔，它定义了线程等待通知的最长时间。
+
+3. **`wait_until(std::unique_lock<Mutex>& lock, const std::chrono::time_point& timeout_time);`**
+   - 这个成员函数使线程等待直到一个指定的时间点。如果在这个时间点之前收到通知，线程将被唤醒；如果没有收到通知，线程也会在时间点到达时被唤醒。
+   - 参数`timeout_time`是一个时间点，它定义了线程等待通知的最大时间。
+
+4. **`notify_one();`**
+   - 这个成员函数用于唤醒等待此条件变量的一个线程。如果有多个线程在等待，它将唤醒其中一个（具体哪个线程被唤醒是不确定的）。
+
+5. **`notify_all();`**
+   - 这个成员函数用于唤醒所有等待此条件变量的线程。
+
+使用条件变量时，通常需要结合互斥锁（mutex）来确保数据的一致性和线程安全。条件变量的`wait`、`wait_for`和`wait_until`函数都会自动管理互斥锁的锁定和解锁，确保在等待和通知过程中不会发生竞态条件。
+
+在使用条件变量时，需要遵循以下步骤：
+- 初始化互斥锁和条件变量。
+- 线程在等待条件变量时，必须持有互斥锁。
+- 在条件满足时，持有互斥锁的线程调用`notify_one`或`notify_all`来唤醒等待的线程。
+- 等待的线程在被唤醒后，会自动重新获取互斥锁，然后继续执行。
+
+这些成员函数为多线程编程中的同步提供了强大的工具，使得线程能够基于某些条件进行挂起和唤醒，从而有效地协调线程间的工作。
+
+- **用法**：线程在**检查条件不满足时**，会**释放互斥量**并**等待条件变量**。当条件变为满足时，线程被唤醒并重新尝试获取互斥量。
 - **目的**：在特定条件成立时通知线程继续执行。
 
 ```cpp
@@ -503,17 +531,90 @@ void increment_tls() {
 - **用法**：线程在访问资源前尝试获取信号量（即计数器减一）。当信号量的计数为零时，线程阻塞。当线程释放资源时，信号量增加（即计数器加一），可能唤醒等待的线程。
 - **目的**：限制对共享资源的并发访问数量。
 
+C++ 标准库直到 C++20 才正式引入了 `std::counting_semaphore` 和 `std::binary_semaphore` 两种信号量类模板。在 C++20 之前，如果你需要使用信号量进行线程同步，你可能需要依赖 POSIX 或 Windows API，或者自行基于互斥锁和条件变量模拟信号量行为。
+
+以下是 C++20 中信号量的基本使用和常用成员函数：
+
+#### 基本使用
+
 ```cpp
-#include <semaphore.h>
+#include <semaphore>
 
-std::semaphore sem(1);
+// 创建一个计数信号量，初始资源数量为5
+std::counting_semaphore<std::ptrdiff_t> counting_sem(5);
 
-void use_resource() {
-    sem.acquire();
-    // 使用资源
-    sem.release();
+// 创建一个二进制信号量，相当于初始资源数量为1
+std::binary_semaphore binary_sem;
+
+// 线程中使用信号量
+void worker_thread()
+{
+    // 消耗一个资源
+    counting_sem.acquire();
+
+    // ... 这里执行临界区代码 ...
+
+    // 释放一个资源
+    counting_sem.release();
+
+    // 对于二进制信号量，使用相同的方式
+    binary_sem.acquire();
+    // ...
+    binary_sem.release();
+}
+
+int main()
+{
+    // 创建并启动多个线程，它们都会尝试获取信号量
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 10; ++i)
+        threads.emplace_back(worker_thread);
+
+    // 主线程或者其他线程可以在适当的时候增加资源
+    for (int i = 0; i < 3; ++i)
+        counting_sem.release();  // 增加3个资源
+
+    // 等待所有线程完成工作
+    for (auto& t : threads)
+        t.join();
 }
 ```
+
+#### 常用成员函数
+
+##### std::counting_semaphore
+
+- **构造函数**
+  ```cpp
+  constexpr explicit counting_semaphore(ptrdiff_t desired);
+  ```
+  初始化信号量，设定初始资源数量。
+
+- **acquire**
+  ```cpp
+  void acquire();
+  void acquire(ptrdiff_t n);
+  ```
+  尝试减少信号量的计数值，如果资源不足（计数值小于要减少的数量），则线程会被阻塞，直到其他线程调用 `release` 函数增加了足够的资源。
+
+- **try_acquire**
+  ```cpp
+  bool try_acquire();
+  bool try_acquire_for(const std::chrono::duration<Rep, Period>& rel_time);
+  bool try_acquire_until(const std::chrono::time_point<Clock, Duration>& abs_time);
+  ```
+  尝试非阻塞地获取资源，如果没有资源则立即返回。另外两个重载版本允许设置超时时间。
+
+- **release**
+  ```cpp
+  void release();
+  void release(ptrdiff_t n);
+  ```
+  增加信号量的计数值，如果有线程正在等待资源，则至少唤醒一个等待的线程。
+
+##### std::binary_semaphore
+
+与 `std::counting_semaphore` 类似，`std::binary_semaphore` 只能表示两种状态（资源可用/不可用），因此它的 `acquire` 和 `release` 功能相对简单，不接受资源数量参数。由于它只能表示一个资源的存在或不存在，常用于二元同步场景，类似于互斥锁（mutex）。
 
 ### 7. 屏障（Barriers）
 
@@ -1279,3 +1380,249 @@ int main() {
 #### 总结
 
 `std::mem_fn` 是一个非常有用的工具，它简化了成员函数的绑定和调用过程。它使得成员函数可以像普通函数一样被存储、传递和调用，这在设计需要灵活使用成员函数的程序时非常有价值。使用 `std::mem_fn` 可以提高代码的可读性和可维护性，同时保持了性能的高效性。
+
+## 原子操作 `std::atomic`
+
+`std::atomic` 是 C++11 标准引入的一种模板类，用于提供对原子操作的支持。原子操作是保证在多线程环境中对共享数据的操作不会被其他线程中断的操作。使用 `std::atomic` 可以确保对变量的读写操作是原子的，即不可分割的，这样可以避免竞态条件和数据竞争。
+
+### 性质
+
+1. **线程安全**：`std::atomic` 提供了一种机制，使得对变量的读写操作在多线程环境中是安全的。
+2. **性能**：相比于使用互斥锁（mutex），`std::atomic` 操作通常有更低的开销，尤其是在只读操作时。
+3. **简单性**：`std::atomic` 简化了并发编程，因为它不需要复杂的锁管理和同步机制。
+4. **硬件支持**：`std::atomic` 依赖于 CPU 原生的原子指令，这些指令在现代处理器上通常是硬件级别的支持。
+
+### 用法
+
+`std::atomic` 可以用于任何可以被原子操作的类型。这通常包括基本数据类型（如 `int`、`float`、`bool` 等）和指针类型。使用 `std::atomic` 时，你需要包含 `<atomic>` 头文件。
+
+```cpp
+#include <atomic>
+#include <iostream>
+
+int main() {
+    std::atomic<int> counter(0);
+
+    std::thread t1([&counter](){
+        for (int i = 0; i < 1000; ++i) {
+            ++counter;
+        }
+    });
+
+    std::thread t2([&counter](){
+        for (int i = 0; i < 1000; ++i) {
+            ++counter;
+        }
+    });
+
+    t1.join();
+    t2.join();
+
+    std::cout << "Counter: " << counter << std::endl; // 输出 Counter: 2000
+
+    return 0;
+}
+```
+
+在这个例子中，我们创建了两个线程，它们都对 `std::atomic<int>` 类型的 `counter` 变量进行增加操作。由于 `counter` 是原子的，所以即使两个线程并发地修改它，最终的结果也是正确的。
+
+### 成员函数
+
+`std::atomic` 是 C++11 引入的模板类，用于确保对变量的读写操作在多线程环境中是原子的。以下是 `std::atomic` 的一些常用成员函数的示例和解释：
+
+#### 1. 构造函数和析构函数
+
+```cpp
+std::atomic<int> atomicInt; // 默认构造函数，将 atomicInt 初始化为 0
+std::atomic<int> atomicInt2(1); // 构造函数，将 atomicInt2 初始化为 1
+```
+
+#### 2. 赋值操作
+
+```cpp
+atomicInt = 10; // 原子地将 atomicInt 设置为 10
+int value = atomicInt.load(); // 原子地读取 atomicInt 的值，并将值存储在 value 变量中
+```
+
+#### 3. 自增和自减操作
+
+```cpp
+atomicInt++; // 原子地将 atomicInt 的值增加 1
+atomicInt--; // 原子地将 atomicInt 的值减少 1
+
+int prevValue = atomicInt.fetch_add(5); // 原子地将 atomicInt 的值增加 5，并返回增加前的值
+prevValue = atomicInt.fetch_sub(3); // 原子地将 atomicInt 的值减少 3，并返回减少前的值
+```
+
+#### 4. 位操作
+
+```cpp
+atomicInt.fetch_and(0xF0); // 原子地对 atomicInt 进行按位与操作，并用 0xF0 更新它的值
+atomicInt.fetch_or(0x0F); // 原子地对 atomicInt 进行按位或操作，并用 0x0F 更新它的值
+atomicInt.fetch_xor(0xFF); // 原子地对 atomicInt 进行按位异或操作，并用 0xFF 更新它的值
+```
+
+#### 5. 比较和交换操作
+
+```cpp
+int expected = 5;
+int value = atomicInt.load();
+
+if (atomicInt.compare_exchange_strong(expected, 10)) {
+    // 如果 atomicInt 的原始值等于 expected（即 5），则将其设置为 10
+    // expected 会被更新为 atomicInt 操作后的值，即 10
+    value = atomicInt.load(); // 此时 value 为 10
+} else {
+    // 如果 atomicInt 的值不等于 expected，expected 保持不变，value 仍为 5
+}
+```
+
+#### 6. 交换操作
+
+```cpp
+int oldValue = atomicInt.exchange(20); // 原子地将 atomicInt 的值设置为 20，并返回旧值
+// oldValue 现在是 atomicInt 被更新前的值
+```
+
+#### 7. 加载和存储操作
+
+这些操作通常用于原子指针操作，允许你在不同的内存位置上执行原子加载和存储。
+
+```cpp
+int* ptr = new int(5);
+std::atomic<int*> atomicPtr(ptr);
+
+int* loadedPtr = atomicPtr.load(); // 原子地加载 atomicPtr 指向的地址
+atomicPtr.store(new int(10)); // 原子地更新 atomicPtr 指向的地址为新的内存地址
+```
+
+#### 8. 内存序和原子操作的修饰
+
+C++11 引入了内存序（memory order）的概念，用于指定原子操作的顺序和语义。以下是一些常见的内存序：
+
+```cpp
+std::memory_order_relaxed; // 最弱的顺序约束，不提供任何同步保证
+std::memory_order_consume; // 消费顺序，用于读取依赖于其他内存操作的结果
+std::memory_order_acquire; //  acquire 顺序，用于读取操作，确保之前的存储操作对其他线程可见
+std::memory_order_release; // release 顺序，用于写入操作，确保之后的读取操作对其他线程可见
+std::memory_order_acq_rel; // 同时提供 acquire 和 release 语义
+std::memory_order_seq_cst; // 顺序一致性，最强的顺序约束，保证所有操作的顺序一致
+
+// 使用内存序
+atomicInt.store(20, std::memory_order_release); // 释放顺序，确保 atomicInt 的写入操作对其他线程可见
+```
+
+请注意，不当的使用内存序可能导致死锁、性能问题或数据竞争。在大多数情况下，`std::memory_order_seq_cst` 是默认和推荐的选择，因为它提供了最强的同步保证。只有在特定情况下，才需要使用其他内存序来优化性能。在使用它们之前，你应该充分理解它们的语义和潜在的风险。
+
+##### 内存序
+
+在C++中，内存序（memory order）是指定原子操作如何在多处理器系统中进行同步的一种方式。内存序的选择会影响内存操作的可见性和顺序。C++11标准定义了以下几种内存序，每种都有其特定的意义和使用场景：
+
+1. **`std::memory_order_relaxed`**:
+   - 最弱的内存序，不提供任何同步保证，只保证操作的原子性。
+   - 适用于那些不需要任何内存顺序保证的操作，例如，某些内部状态的更新，这些状态不会影响到其他线程。
+
+2. **`std::memory_order_consume`**:
+   - 消费序，用于依赖于数据依赖关系的读取操作。
+   - 当一个线程读取了一个带有`std::memory_order_release`或`std::memory_order_acq_rel`写入的变量后，其他线程对这个变量的读取应该使用`std::memory_order_consume`，以确保数据依赖性的正确性。
+
+3. **`std::memory_order_acquire`**:
+   - _acquire 序，用于读取操作，确保此操作之前的所有修改对当前线程可见。
+   - 适用于读取操作，当你需要确保在当前操作之前，所有其他线程对共享变量的写入都已完成。
+
+4. **`std::memory_order_release`**:
+   - _release 序，用于写入操作，确保此操作之后的修改对其他线程可见。
+   - 适用于写入操作，当你需要确保当前操作之后的修改对其他线程立即可见时。
+
+5. **`std::memory_order_acq_rel`**:
+   - _acquire-release 序，结合了 _acquire 和 _release 的特性。
+   - 适用于读写操作，确保操作之前的所有修改对当前线程可见，操作之后的修改对其他线程立即可见。
+
+6. **`std::memory_order_seq_cst`**:
+   - 顺序一致性，提供最强的同步保证，所有的原子操作都有一个全局一致的顺序。
+   - 适用于需要严格顺序保证的场景，例如，当你需要确保所有线程看到的是一致的操作顺序时。
+
+###### 示例
+
+假设我们有两个线程，一个生产者和一个消费者，它们共享一个标志变量 `std::atomic<bool> ready(false)`，用来指示生产者是否已经准备好数据。
+
+```cpp
+void producer() {
+    // ... 生产数据的代码 ...
+    ready.store(true, std::memory_order_release); // 写入数据准备就绪标志，确保之前的操作对消费者可见
+}
+
+void consumer() {
+    while (!ready.load(std::memory_order_acquire)) {
+        // ... 等待数据准备就绪 ...
+    }
+    // ... 消费数据的代码 ...
+}
+```
+
+在这个例子中，生产者使用 `std::memory_order_release` 来确保在设置 `ready` 标志之前的所有操作都已完成，并且对消费者可见。消费者使用 `std::memory_order_acquire` 来确保它能够看到生产者设置标志之前的所有修改。
+
+使用正确的内存序可以确保多线程程序的正确性和性能。然而，不当的使用可能会导致死锁、活锁或不必要的性能开销。因此，在使用内存序时，需要仔细考虑程序的并发模型和数据依赖关系。在大多数情况下，`std::memory_order_seq_cst` 是默认和推荐的选择，因为它提供了最强的同步保证，简化了并发编程的复杂性。只有在需要优化性能时，才考虑使用其他内存序。
+
+### 注意事项
+
+- 在使用 `std::atomic` 时，应避免使用除了原子操作之外的任何操作，因为这可能会破坏原子性。
+- `std::atomic` 不能用于包含非原子操作的复杂类型，如用户自定义类型或包含非原子成员的类型。
+
+总的来说，`std::atomic` 是一个强大的工具，可以帮助开发者在多线程环境中安全地操作共享数据。正确使用 `std::atomic` 可以提高程序的性能和可靠性。
+
+## 模版 `template`
+
+### 模版函数的声明与定义
+
+
+
+## `std::task`
+
+`std::packaged_task` 是C++标准库中 `<future>` 头文件提供的一个类模板，它允许将一个可调用对象（如函数、函数对象或lambda表达式）打包进一个任务，并且与一个`std::future`对象关联起来。`std::packaged_task`的目的是在多线程环境中创建异步任务，并能够异步地获取任务的结果。
+
+**基本结构和使用方法：**
+
+```cpp
+#include <future>
+
+// 假设我们有一个计算平方的函数
+int square(int x) {
+    return x * x;
+}
+
+int main() {
+    // 创建一个packaged_task实例，关联计算平方的函数
+    std::packaged_task<int(int)> task(square);
+
+    // 从packaged_task获取关联的future对象
+    std::future<int> futureResult = task.get_future();
+
+    // 启动一个线程执行packaged_task
+    std::thread worker(std::move(task), 10); // 注意使用std::move防止拷贝任务
+
+    // 主线程可以继续执行其他任务，而worker线程在执行square函数
+
+    // 当需要获取结果时，可以从future对象中获取
+    if (futureResult.valid()) {
+        int result = futureResult.get(); // 这里会阻塞，直到计算完成
+        std::cout << "The square of 10 is: " << result << '\n';
+    }
+
+    // 确保worker线程结束
+    worker.join();
+}
+```
+
+**使用场景：**
+
+1. **异步计算**：当主线程需要执行一个耗时较长的计算任务，而又不想阻塞主线程的执行时，可以使用`std::packaged_task`将计算任务包装并提交给线程池或者其他工作线程执行，主线程则可以通过关联的`std::future`对象获取计算结果。
+
+2. **事件驱动编程**：在事件循环中，当某个事件触发时，可以创建一个`std::packaged_task`并将它放入事件队列，事件处理线程将执行这些任务，并通过`std::future`返回结果。
+
+3. **协同任务处理**：当多个任务之间存在一定的依赖关系，可以通过`std::packaged_task`创建一系列任务，任务的结果可以通过`std::future`进行传递和消费。
+
+4. **资源有限的环境**：在资源受限的嵌入式系统或服务器环境中，通过`std::packaged_task`配合线程池，可以高效地管理线程资源和任务调度。
+
+总结来说，`std::packaged_task`是C++多线程编程中实现异步任务和结果获取的重要工具，它将任务执行和结果查询分离，使得程序可以更灵活地进行并行处理和任务调度。
+
